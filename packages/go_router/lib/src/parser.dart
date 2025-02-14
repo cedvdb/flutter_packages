@@ -88,7 +88,7 @@ class GoRouteInformationParser extends RouteInformationParser<RouteMatchList> {
   Future<RouteMatchList> parseRouteInformationWithDependencies(
     RouteInformation routeInformation,
     BuildContext context,
-  ) {
+  ) async {
     // 1) Safety check: routeInformation.state should never be null in normal operation,
     // but if it somehow is, return an empty route list rather than crashing.
     if (routeInformation.state == null) {
@@ -133,7 +133,7 @@ class GoRouteInformationParser extends RouteInformationParser<RouteMatchList> {
           : nextState;
 
       // Let the app decide if this navigation should proceed
-      final bool canEnter = configuration.topOnEnter!(
+      final bool canEnter = await configuration.topOnEnter!(
         context,
         currentState,
         nextState,
