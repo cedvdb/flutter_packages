@@ -636,4 +636,107 @@ void main() {
     expect(match.matches, hasLength(1));
     expect(matchesObj.error, isNull);
   });
+
+  testWidgets(
+    'GoRouteInformationParser handles onEnter navigation control correctly',
+    (WidgetTester tester) async {
+      // Track states for verification
+      GoRouterState? capturedCurrentState;
+      GoRouterState? capturedNextState;
+      int onEnterCallCount = 0;
+
+      final GoRouter router = GoRouter(
+        initialLocation: '/',
+        onEnter: (
+          BuildContext context,
+          GoRouterState current,
+          GoRouterState next,
+          GoRouter goRouter,
+        ) {
+          onEnterCallCount++;
+          capturedCurrentState = current;
+          capturedNextState = next;
+
+          // Block navigation only to /blocked route
+          return !next.uri.path.contains('blocked');
+        },
+        routes: <RouteBase>[
+          GoRoute(
+            path: '/',
+            builder: (_, __) => const Placeholder(),
+            routes: <GoRoute>[
+              GoRoute(
+                path: 'allowed',
+                builder: (_, __) => const Placeholder(),
+              ),
+              GoRoute(
+                path: 'blocked',
+                builder: (_, __) => const Placeholder(),
+              ),
+            ],
+          ),
+        ],
+      );
+
+      // Important: Dispose router at end
+      addTearDown(() async {
+        router.dispose();
+        // Allow pending timers and microtasks to complete
+        await tester.pumpAndSettle();
+      });
+
+      // Initialize the router
+      await tester.pumpWidget(MaterialApp.router(routerConfig: router));
+      final GoRouteInformationParser parser = router.routeInformationParser;
+      final BuildContext context = tester.element(find.byType(Router<Object>));
+
+      // Test Case 1: Initial Route
+      expect(onEnterCallCount, 1,
+          reason: 'onEnter should be called for initial route');
+      expect(
+        capturedCurrentState?.uri.path,
+        capturedNextState?.uri.path,
+        reason: 'Initial route should have same current and next state',
+      );
+
+      // Test Case 2: Blocked Navigation
+      final RouteMatchList beforeBlockedNav =
+          router.routerDelegate.currentConfiguration;
+
+      final RouteInformation blockedRouteInfo = RouteInformation(
+        uri: Uri.parse('/blocked'),
+        state: RouteInformationState<void>(type: NavigatingType.go),
+      );
+
+      final RouteMatchList blockedMatch =
+          await parser.parseRouteInformationWithDependencies(
+        blockedRouteInfo,
+        context,
+      );
+
+      // Wait for any animations to complete
+      await tester.pumpAndSettle();
+
+      expect(onEnterCallCount, 2,
+          reason: 'onEnter should be called for blocked route');
+      expect(
+        blockedMatch.uri.toString(),
+        equals(beforeBlockedNav.uri.toString()),
+        reason: 'Navigation to blocked route should retain previous uri',
+      );
+      expect(
+        capturedCurrentState?.uri.path,
+        '/',
+        reason: 'Current state should be root path',
+      );
+      expect(
+        capturedNextState?.uri.path,
+        '/blocked',
+        reason: 'Next state should be blocked path',
+      );
+
+      // Cleanup properly
+      await tester.pumpAndSettle();
+    },
+  );
 }
