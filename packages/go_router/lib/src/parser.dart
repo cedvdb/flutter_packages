@@ -106,6 +106,7 @@ class GoRouteInformationParser extends RouteInformationParser<RouteMatchList> {
     BuildContext context,
     RouteMatchList matchList,
     List<RouteMatchList> onEnterHistory,
+    RouteInformationState<dynamic> infoState,
   ) async {
     // Build states for onEnter
     final GoRouterState nextState =
@@ -128,8 +129,8 @@ class GoRouteInformationParser extends RouteInformationParser<RouteMatchList> {
       return _updateRouteMatchList(
         matchList,
         baseRouteMatchList: matchList,
-        completer: null,
-        type: NavigatingType.go,
+        completer: infoState.completer,
+        type: infoState.type,
       );
     }
 
@@ -138,8 +139,8 @@ class GoRouteInformationParser extends RouteInformationParser<RouteMatchList> {
       return _updateRouteMatchList(
         _lastMatchList!,
         baseRouteMatchList: matchList,
-        completer: null,
-        type: NavigatingType.go,
+        completer: infoState.completer,
+        type: infoState.type,
       );
     }
 
@@ -226,6 +227,7 @@ class GoRouteInformationParser extends RouteInformationParser<RouteMatchList> {
         context,
         initialMatches,
         <RouteMatchList>[initialMatches], // Start history with initial match
+        infoState,
       );
     }
 
